@@ -4,26 +4,32 @@ A small macOS menu bar app that shows your next calendar event and a countdown, 
 
 Notifications 10 minutes and 1 minute before each call, with a **Join call** button. English and Russian.
 
-Written in Swift with AppKit and EventKit. No dependencies, ~400 KB binary.
+Written in Swift with AppKit and EventKit. No dependencies, ~800 KB universal binary.
+
+## Install
+
+Requires macOS 14 or later (Apple Silicon or Intel).
+
+1. Download `Soon-<version>.dmg` from [Releases](https://github.com/piashyos/soon/releases/latest), open it and drag **Soon** to **Applications**. Launch it from there, not from the disk image.
+2. The app is not notarized by Apple, so macOS blocks the first launch. Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to Soon. You only need to do this once.
+   Alternatively, in Terminal: `xattr -dr com.apple.quarantine /Applications/Soon.app`
+3. Allow calendar and notification access when prompted.
 
 ## Setup
 
 1. Add your Google (or other) account under **System Settings → Internet Accounts** with Calendars enabled. Soon reads events through macOS Calendar and does not connect to Google itself.
 2. To get changes quickly, open **Calendar.app → Settings → Accounts** and set *Refresh Calendars* to *Every minute*.
-3. Build and install:
-   ```sh
-   ./build.sh install   # builds, copies to /Applications, launches
-   ```
-4. Allow calendar and notification access when prompted.
-5. **Settings… (⌘,)** in the menu: language, launch at login, title length, notifications, calendars.
+3. **Settings… (⌘,)** in the menu: language, launch at login, title length, notifications, calendars.
    For reminders that stay on screen until clicked, set **System Settings → Notifications → Soon** to *Alerts*.
    Focus / Do Not Disturb holds them back.
 
 ## Development
 
 ```sh
-swift test       # tests for link detection and formatting
-./build.sh       # build/Soon.app
+swift test             # tests for link detection and formatting
+./build.sh             # build/Soon.app
+./build.sh install     # build, copy to /Applications, launch
+./build.sh dmg         # build/Soon-<version>.dmg for a release
 ```
 
 If calendar access gets stuck, run `tccutil reset Calendar com.vorislove.soon` and launch the app again.
