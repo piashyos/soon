@@ -27,3 +27,7 @@ swift test       # tests for link detection and formatting
 ```
 
 If calendar access gets stuck, run `tccutil reset Calendar com.vorislove.soon` and launch the app again.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
