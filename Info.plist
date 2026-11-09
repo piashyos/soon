@@ -6,6 +6,8 @@
 	<string>com.vorislove.soon</string>
 	<key>CFBundleName</key>
 	<string>Soon</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleExecutable</key>
 	<string>Soon</string>
 	<key>CFBundlePackageType</key>

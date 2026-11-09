@@ -7,9 +7,10 @@ cd "$(dirname "$0")"
 swift build -c release
 APP=build/Soon.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/Soon "$APP/Contents/MacOS/"
 cp Info.plist "$APP/Contents/"
+cp AppIcon.icns "$APP/Contents/Resources/"  # regenerate with: swift icon.swift
 
 # A stable identity keeps the Calendar permission across rebuilds; ad-hoc ("-") re-prompts.
 SIGN_ID=${SIGN_ID:-$(security find-identity -v -p codesigning | awk '/Apple Development/ {print $2; exit}')}
