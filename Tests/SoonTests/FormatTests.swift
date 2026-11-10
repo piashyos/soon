@@ -10,6 +10,33 @@ import Testing
     #expect(findMeeting(in: ["https://docs.google.com/document/d/1", nil]) == nil)
 }
 
+@Test func otherLinks() {
+    let notes = """
+    Agenda: <a href="https://www.figma.com/design/abc?node-id=1-2&amp;t=x">https://www.figma.com/design/abc?node-id=1-2&amp;t=x</a>.
+    Notes (https://www.notion.so/team/Sprint-123).
+    -::~:~::~:~:~:~:~:~::~:~::-
+    Join with Google Meet: https://meet.google.com/eqo-jtzu-avx
+
+    Learn more about Meet at: https://support.google.com/a/users/answer/9282720
+
+    Please do not edit this section.
+    -::~:~::~:~:~:~:~:~::~:~::-
+    """
+    #expect(findLinks(in: [nil, notes], except: findMeeting(in: [notes])).map(\.absoluteString) == [
+        "https://www.figma.com/design/abc?node-id=1-2&t=x",
+        "https://www.notion.so/team/Sprint-123",
+    ])
+    let zoom = "https://us02web.zoom.us/j/1?pwd=x Find your local number: https://us02web.zoom.us/u/kab"
+    #expect(findLinks(in: [zoom], except: findMeeting(in: [zoom])).isEmpty)
+    #expect(findLinks(in: ["no links", "mailto:a@b.co"]).isEmpty)
+}
+
+@Test func faviconHref() {
+    #expect(iconHref(in: #"<head><link rel="icon" href="/front-static/favicon.ico" data-next-head=""/></head>"#) == "/front-static/favicon.ico")
+    #expect(iconHref(in: #"<link rel="mask-icon" href="/m.svg"><link href='//cdn.x/f.png' REL='shortcut icon'>"#) == "//cdn.x/f.png")
+    #expect(iconHref(in: #"<link rel="apple-touch-icon" href="/a.png"></head><link rel="icon" href="/late.ico">"#) == nil)
+}
+
 @Test func durations() {
     #expect(duration(115 * 60, .en) == "1h 55m")
     #expect(duration(114 * 60 + 1, .en) == "1h 55m")

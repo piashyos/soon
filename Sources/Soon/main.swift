@@ -22,6 +22,19 @@ extension EKEvent {
     var declined: Bool { attendees?.first(where: \.isCurrentUser)?.participantStatus == .declined }
     /// All-day or 24h+: listed in the menu, never in the status bar.
     var isLong: Bool { isAllDay || endDate.timeIntervalSince(startDate) >= 86400 }
+
+    /// Attached files (Google Drive etc.), then other links from url / location / notes.
+    var links: [(title: String, url: URL)] {
+        // ponytail: EventKit has no public API for attachments; if Apple renames the private one, they just vanish
+        func get(_ o: NSObject, _ key: String) -> Any? { o.responds(to: NSSelectorFromString(key)) ? o.value(forKey: key) : nil }
+        let files: [(title: String, url: URL)] = (get(self, "attachments") as? [NSObject] ?? []).compactMap { a in
+            guard let url = get(a, "URL") as? URL, url.scheme?.hasPrefix("http") == true else { return nil }
+            return ((get(a, "fileName") as? String) ?? url.absoluteString, url)
+        }
+        return files + findLinks(in: [url?.absoluteString, location, notes], except: meeting)
+            .filter { u in !files.contains { $0.url == u } }
+            .map { (String($0.host()!.trimmingPrefix("www.")), $0) }  // findLinks only returns URLs with a host
+    }
 }
 
 func bar(_ color: NSColor?) -> NSImage {
@@ -159,7 +172,7 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     : L("Upcoming in %@", duration(next.startDate.timeIntervalSince(now)))))
                 menu.addItem(eventItem(next))
                 if let m = next.meeting {
-                    menu.addItem(Action(L("Join %@ meeting", m.service), symbol: "video") { NSWorkspace.shared.open(m.url) })
+                    menu.addItem(withFavicon(Action(L("Join %@ meeting", m.service), symbol: "video") { NSWorkspace.shared.open(m.url) }, m.url))
                 }
             } else if long.isEmpty {
                 menu.addItem(.sectionHeader(title: L("No upcoming events")))
@@ -213,12 +226,23 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let loc = e.location, !loc.isEmpty { sub.addItem(info(truncate(loc, 60))) }
         sub.addItem(info(e.calendar.title))
         sub.addItem(.separator())
-        if let m = e.meeting {
-            sub.addItem(Action(L("Join %@ meeting", m.service), symbol: "video") { NSWorkspace.shared.open(m.url) })
+        let meeting = e.meeting
+        if let m = meeting {
+            sub.addItem(withFavicon(Action(L("Join %@ meeting", m.service), symbol: "video") { NSWorkspace.shared.open(m.url) }, m.url))
             sub.addItem(Action(L("Copy Meeting Link"), symbol: "doc.on.doc") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(m.url.absoluteString, forType: .string)
             })
+        }
+        let links = e.links
+        if !links.isEmpty {
+            if meeting != nil { sub.addItem(.separator()) }
+            for (title, url) in links {
+                let item = Action(truncate(title, 50), symbol: "link") { NSWorkspace.shared.open(url) }
+                item.toolTip = url.absoluteString
+                sub.addItem(withFavicon(item, url))
+            }
+            sub.addItem(.separator())
         }
         // ponytail: best-effort deep link, recurring events may open the first occurrence
         let id = e.calendarItemIdentifier.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? ""

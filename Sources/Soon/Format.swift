@@ -12,17 +12,37 @@ private let services: [(name: String, pattern: String)] = [
     ("Webex", #"https://[\w-]+\.webex\.com/[^\s"'<>]+"#),
 ]
 
+private let trailing = CharacterSet(charactersIn: ".,;:)")
+
 /// First known video-call link in the given texts (event url, location, notes — in priority order).
 func findMeeting(in texts: [String?]) -> Meeting? {
     for text in texts.compactMap({ $0 }) {
         for s in services {
             if let r = text.range(of: s.pattern, options: .regularExpression),
-               let url = URL(string: text[r].trimmingCharacters(in: CharacterSet(charactersIn: ".,;:)"))) {
+               let url = URL(string: text[r].trimmingCharacters(in: trailing)) {
                 return Meeting(service: s.name, url: url)
             }
         }
     }
     return nil
+}
+
+/// Invitation boilerplate, not something the organizer attached: Meet's "Learn more" and dial-in pages, Teams help.
+private let boilerplate: Set<String> = ["support.google.com", "tel.meet", "aka.ms"]
+
+/// Other http(s) links in the texts (docs, boards…), in order, without duplicates,
+/// without the call's own site (its dial-in / settings pages) and invitation boilerplate.
+func findLinks(in texts: [String?], except meeting: Meeting? = nil) -> [URL] {
+    let call = meeting?.url.host()
+    var seen = Set<String>()
+    return texts.compactMap { $0?.replacingOccurrences(of: "&amp;", with: "&") }  // notes can be HTML
+        .flatMap { $0.matches(of: #/https?://[^\s"'<>]+/#) }
+        .compactMap { URL(string: $0.output.trimmingCharacters(in: trailing)) }
+        .filter { url in
+            guard let host = url.host(), !boilerplate.contains(host) else { return false }
+            if let call, host == call || host.hasSuffix("." + call) { return false }
+            return seen.insert(url.absoluteString).inserted
+        }
 }
 
 /// 115 min -> "1h 55m" / "1 ч 55 мин", rounds up to whole minutes.
